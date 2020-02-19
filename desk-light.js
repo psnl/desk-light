@@ -1,6 +1,6 @@
-var bluetoothDevice;
-var gattCharMode;
-var modeOptions = [];
+var glbBluetoothDevice;
+var glbGattCharMode;
+var glbModeOptions = [];
 
 var requestDeviceParms = {
         filters: [
@@ -17,12 +17,12 @@ function btnConnect() {
 
     options.filters.push({services: ["4c68970c-7145-415e-b4ca-b47d132e62dd"]});
 
-    bluetoothDevice = null;
+    glbBluetoothDevice = null;
     console.log('Requesting Bluetooth Device...');
     navigator.bluetooth.requestDevice(options)
     .then(device => {
-    bluetoothDevice = device;
-    bluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
+    glbBluetoothDevice = device;
+    glbBluetoothDevice.addEventListener('gattserverdisconnected', onDisconnected);
     return connect();
     })
     .catch(error => {
@@ -32,29 +32,23 @@ function btnConnect() {
 
 function connect() {
     console.log('Connecting to Bluetooth Device...');
-    return bluetoothDevice.gatt.connect()
+    return glbBluetoothDevice.gatt.connect()
     .then(server => {
       console.log('> Bluetooth Device connected');
       document.getElementById("btnConnect").disabled = true;
       document.getElementById("btnDisconnect").disabled = false;
       document.getElementById("bluetoothStatus").textContent = "bluetooth_connected";
       server.getPrimaryService("4c68970c-7145-415e-b4ca-b47d132e62dd").then(gattService=>{
-          gattService.getCharacteristic("2a8ed03b-d99a-4e7b-bcf5-be33882577d8").then(gattCharacteristic=>{
-            gattCharQueryMode = gattCharacteristic;
-            var modeString = query_mode(gattCharacteristic, 0, modeOptions);
-          });
-          
-          gattService.getCharacteristic("e0de3de1-0cb6-4f11-bb40-446445a2448b").then(gattCharacteristic=>{
+        console.log('> Service started');
+        gattService.getCharacteristic("e0de3de1-0cb6-4f11-bb40-446445a2448b").then(gattCharacteristic=>{
+            console.log('> gattCharGetSetMode');
             gattCharGetSetMode = gattCharacteristic;
-            gattCharacteristic.startNotifications().then(gattCharacteristic=>{
-                gattCharacteristic.addEventListener("characteristicvaluechanged", event=>{
-                      var value = event.target.value.getUint8(0);
-                      colorButton(value);
-                      //$("#notifiedValue").text("" + value);
-                  });
-              });
+            gattService.getCharacteristic("2a8ed03b-d99a-4e7b-bcf5-be33882577d8").then(gattCharacteristic=>{
+              console.log('> gattCharQueryMode');
+              gattCharQueryMode = gattCharacteristic;
+              var modeString = query_mode(gattCharQueryMode, 0, glbModeOptions);
+            });
           });
-
       });
       //document.getElementById("btnConnect").value="Connected";
       //document.getElementById("btnConnect").disabled = true;
@@ -62,6 +56,8 @@ function connect() {
 }
 
 function colorButton(number) {
+  var test = document.getElementById("testfield");
+  test.textContent = number.toString();
   var btns = document.getElementsByName("modeButton");
   var i;
   for (i = 0; i < btns.length; i++) {
@@ -85,6 +81,7 @@ function removeButtons() {
 
 
  function query_mode(gattCharacteristic, number, data) {
+    console.log('> query_mode');
     gattCharacteristic.writeValue(string_to_buffer(number.toString())).then(result => {
         gattCharacteristic.readValue().then(value1 => {
             var value2 = buffer_to_string(value1.buffer);
@@ -97,10 +94,15 @@ function removeButtons() {
             else
             {
                 //Done add buttons
-                gattCharGetSetMode.readValue().then(value1 => {
-                    colorButton(value1.getUint8(0));
-                });    
-    
+              gattCharGetSetMode.startNotifications().then(gattCharacteristic=>{
+                  console.log('> Notifications started');
+                  gattCharacteristic.addEventListener("characteristicvaluechanged", event=>{
+                      var value = event.target.value.getUint8(0);
+                      colorButton(value);
+                      //$("#notifiedValue").text("" + value);
+                  });
+              });
+   
             }
         });
     });
@@ -126,17 +128,27 @@ function newButtonClickListener(number, value) {
     write(parseInt(number));
 }
 
+function createButtonNew(number, name) {
+  var btn = document.createElement("BUTTON");   // Create a <button> element
+  btn.name = "modeButton";                      // Insert text
+  btn.id = number;
+  btn.value = name;
+  btn.class = "btn btn-info";
+  btn.onclick= "newButtonClickListener(this.id, this.value)";
+  document.body.appendChild(btn);               // Append <button> to <body>
+}
+
 function createButton(number, name) {
-    var r = $('<input/>').attr({
-                 type: "button",
-                 id: number,
-                 name: "modeButton",
-                 value: name,
-                 class:"btn btn-info",
-                 onclick: "newButtonClickListener(this.id, this.value)"
-            });
-            $("body").append(r);
-        }
+  var r = $('<input/>').attr({
+               type: "button",
+               id: number,
+               name: "modeButton",
+               value: name,
+               class:"btn btn-info",
+               onclick: "newButtonClickListener(this.id, this.value)"
+          });
+          $("body").append(r);
+}
 
 function onDisconnected(event) {
   // Object event.target is Bluetooth Device getting disconnected.
@@ -148,12 +160,12 @@ function onDisconnected(event) {
 }
 
 function btnDisconnect() {
-  if (!bluetoothDevice) {
+  if (!glbBluetoothDevice) {
     return;
   }
   console.log('Disconnecting from Bluetooth Device...');
-  if (bluetoothDevice.gatt.connected) {
-    bluetoothDevice.gatt.disconnect();
+  if (glbBluetoothDevice.gatt.connected) {
+    glbBluetoothDevice.gatt.disconnect();
   } else {
     console.log('> Bluetooth Device is already disconnected');
     document.getElementById("btnConnect").disabled = false;

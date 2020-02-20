@@ -50,34 +50,9 @@ function connect() {
             });
           });
       });
-      //document.getElementById("btnConnect").value="Connected";
-      //document.getElementById("btnConnect").disabled = true;
     });
 }
 
-function colorButton(number) {
-  var test = document.getElementById("testfield");
-  test.textContent = number.toString();
-  var btns = document.getElementsByName("modeButton");
-  var i;
-  for (i = 0; i < btns.length; i++) {
-      if (parseInt(btns[i].attributes.id.nodeValue) == number) {
-          btns[i].className = "btn btn-warning";
-      }
-      else {
-          btns[i].className = "btn btn-info";
-      }
-  }
-}
-
-function removeButtons() {
-  var btns = document.getElementsByName("modeButton");
-  var i;
-  var length = btns.length;
-  for (i = 0; i < length; i++) {
-    btns[0].remove();
-  }
-}
 
 
  function query_mode(gattCharacteristic, number, data) {
@@ -94,9 +69,10 @@ function removeButtons() {
             else
             {
                 //Done add buttons
-              gattCharGetSetMode.startNotifications().then(gattCharacteristic=>{
+              gattCharGetSetMode.startNotifications().then(gattCharGetSetMode=>{
                   console.log('> Notifications started');
-                  gattCharacteristic.addEventListener("characteristicvaluechanged", event=>{
+                  gattCharGetSetMode.addEventListener("characteristicvaluechanged", event=>{
+                      console.log('> Event');
                       var value = event.target.value.getUint8(0);
                       colorButton(value);
                       //$("#notifiedValue").text("" + value);
@@ -128,27 +104,6 @@ function newButtonClickListener(number, value) {
     write(parseInt(number));
 }
 
-function createButtonNew(number, name) {
-  var btn = document.createElement("BUTTON");   // Create a <button> element
-  btn.name = "modeButton";                      // Insert text
-  btn.id = number;
-  btn.value = name;
-  btn.class = "btn btn-info";
-  btn.onclick= "newButtonClickListener(this.id, this.value)";
-  document.body.appendChild(btn);               // Append <button> to <body>
-}
-
-function createButton(number, name) {
-  var r = $('<input/>').attr({
-               type: "button",
-               id: number,
-               name: "modeButton",
-               value: name,
-               class:"btn btn-info",
-               onclick: "newButtonClickListener(this.id, this.value)"
-          });
-          $("body").append(r);
-}
 
 function onDisconnected(event) {
   // Object event.target is Bluetooth Device getting disconnected.
@@ -173,5 +128,41 @@ function btnDisconnect() {
     document.getElementById("bluetoothStatus").textContent = "bluetooth_disabled";
     removeButtons();
 
+  }
+}
+
+function colorButton(number) {
+  // var test = document.getElementById("testfield");
+  // test.textContent = number.toString();
+  var btns = document.getElementsByName("modeButton");
+  var i;
+  for (i = 0; i < btns.length; i++) {
+      if (parseInt(btns[i].attributes.id.nodeValue) == number) {
+          btns[i].className = "btn btn-warning";
+      }
+      else {
+          btns[i].className = "btn btn-info";
+      }
+  }
+}
+
+function createButton(number, name) {
+  var r = $('<input/>').attr({
+               type: "button",
+               id: number,
+               name: "modeButton",
+               value: name,
+               class:"btn btn-info",
+               onclick: "newButtonClickListener(this.id, this.value)"
+          });
+          $("body").append(r);
+}
+
+function removeButtons() {
+  var btns = document.getElementsByName("modeButton");
+  var i;
+  var length = btns.length;
+  for (i = 0; i < length; i++) {
+    btns[0].remove();
   }
 }

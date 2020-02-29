@@ -24,7 +24,7 @@ class DlUi
   }
 
   btnColorModeButton(number) {
-    console.log('btn:ColorModeButton (' + number + ')');
+    //console.log('btn:ColorModeButton (' + number + ')');
     var btns = document.getElementsByName("modeButton");
     var i;
     for (i = 0; i < btns.length; i++) {

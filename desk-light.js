@@ -1,6 +1,9 @@
 //import DlUi from './dl-ui';
 //const DlUi = require('./dl-ui');
 var brightnessChar = null;
+var gattCharGetSetMode = null;
+var gattCharQueryMode = null;
+var glbModeOptions = [];
 
 const dlState = {
     NOT_CONNECTED: "not_connected",
@@ -139,27 +142,15 @@ class DeskLight
     var range = document.getElementById("brightnessControl")
     if (elem.innerHTML == "Manual")
     {
-      elem.innerHTML = "Zigbee"
-      range.disabled = true;
-      if (brightnessChar != null){
-        var buffer = new ArrayBuffer(2)
-        //var buffer = new Uint16Array(1);
-        var dv = new DataView(buffer, 0);
-        dv.setUint16(0, 256, true);
-        brightnessChar.writeValue(dv);
-      }
+      // Switch to zigbee
+      this.BrightnessWrite(256);
+      this.BrightnessUpdate(256);
     }
     else
     {
-      elem.innerText = "Manual"
-      range.disabled = false;
-
-      var buffer = new ArrayBuffer(2)
-      //var buffer = new Uint16Array(1);
-      var dv = new DataView(buffer, 0);
-      dv.setUint16(0, range.value, true);
-      brightnessChar.writeValue(dv);
-
+      // Switch to manual
+      this.BrightnessWrite(range.value);
+      this.BrightnessUpdate(range.value);
     }
 
   }
@@ -208,24 +199,32 @@ class DeskLight
   fetchService() {
     console.log('dl:fetchService');
     this._ble.server.getPrimaryService("4c68970c-7145-415e-b4ca-b47d132e62dd").then(gattService=>{
-      desklight.fetchCharBrightness(gattService);
+      desklight.fetchChar(gattService);
     }).catch(error => {
       console.log('dl:fetchService error ' + error);
     });
   }
 
-  fetchCharBrightness(gattService) {
-    console.log('dl:fetchCharBrightness');
+  fetchChar(gattService) {
+    console.log('dl:fetchChar');
     gattService.getCharacteristic("5a028edd-5f36-4aef-8b53-ed3ee2805b09").then(gattCharacteristic=>{
+      console.log('dl:fetchBrightnessChar');
       gattCharacteristic.readValue().then(value => {
         brightnessChar = gattCharacteristic;
         var brightness = value.getUint16(0, true);
         this.Brightness(true);
         this.BrightnessUpdate(brightness);
-        //console.log(brightnessRaw);
-      }).catch(error => {
-        console.log('dl:fetchCharBrightness value error ' + error);
       });
+      gattService.getCharacteristic("e0de3de1-0cb6-4f11-bb40-446445a2448b").then(gattCharacteristic=>{
+        console.log('dl:fetchGetSetMode');
+        gattCharGetSetMode = gattCharacteristic;
+      });
+      gattService.getCharacteristic("2a8ed03b-d99a-4e7b-bcf5-be33882577d8").then(gattCharacteristic=>{
+        console.log('dl:fetchQueryMode');
+        gattCharQueryMode = gattCharacteristic;
+        this.fetchMode(gattCharQueryMode, 0, glbModeOptions);
+      });
+
       gattCharacteristic.startNotifications().then(gattCharacteristic=>{
           console.log('> Notifications started');
           gattCharacteristic.addEventListener("characteristicvaluechanged", event=>{
@@ -238,14 +237,34 @@ class DeskLight
     });
   }
 
-  //         gattService.getCharacteristic("e0de3de1-0cb6-4f11-bb40-446445a2448b").then(gattCharacteristic=>{
-//             console.log('> gattCharGetSetMode');
-//             gattCharGetSetMode = gattCharacteristic;
-//             gattService.getCharacteristic("2a8ed03b-d99a-4e7b-bcf5-be33882577d8").then(gattCharacteristic=>{
-//               console.log('> gattCharQueryMode');
-//               gattCharQueryMode = gattCharacteristic;
-//               var modeString = query_mode(gattCharQueryMode, 0, glbModeOptions);
-//             });
+  fetchMode(gattCharacteristic, number, data) {
+    console.log('fetchMode');
+    gattCharacteristic.writeValue(string_to_buffer(number.toString())).then(result => {
+        gattCharacteristic.readValue().then(value1 => {
+            var value2 = buffer_to_string(value1.buffer);
+            if (value2!="")
+            {
+                data.push(value2);
+                this._ui.btnCreateButton(number, value2);
+                this.fetchMode(gattCharacteristic, ++number, data)
+            }
+            else
+            {
+                //Done add buttons
+              gattCharGetSetMode.startNotifications().then(gattCharGetSetMode=>{
+                  console.log('> Notifications started');
+                  gattCharGetSetMode.addEventListener("characteristicvaluechanged", event=>{
+                      //console.log('> Event');
+                      var value = event.target.value.getUint8(0);
+                      this._ui.btnColorModeButton(value);
+                      //$("#notifiedValue").text("" + value);
+                  });
+              });
+   
+            }
+        });
+    });
+}
 
   Brightness(enable)
   {
@@ -261,6 +280,16 @@ class DeskLight
     }
   }
 
+  BrightnessWrite(value)
+  {
+    if (brightnessChar != null){
+      var buffer = new ArrayBuffer(2)
+      //var buffer = new Uint16Array(1);
+      var dv = new DataView(buffer, 0);
+      dv.setUint16(0, value, true);
+      brightnessChar.writeValue(dv); 
+    }
+  }
 
   BrightnessUpdate(value)
   {
@@ -360,53 +389,25 @@ const desklight = new DeskLight();
 //     });
 // }
 
-// function string_to_buffer(src) {
-//     return (new Uint8Array([].map.call(src, function(c) {
-//       return c.charCodeAt(0)
-//     }))).buffer;
-// }
+function string_to_buffer(src) {
+    return (new Uint8Array([].map.call(src, function(c) {
+      return c.charCodeAt(0)
+    }))).buffer;
+}
 
-// function buffer_to_string(buf) {
-//     return String.fromCharCode.apply(null, new Uint8Array(buf));
-// }
+function buffer_to_string(buf) {
+    return String.fromCharCode.apply(null, new Uint8Array(buf));
+}
 
-// function write(value) {
-//     var buffer = new Uint8Array(1);
-//     buffer[0] = value;
-//     gattCharGetSetMode.writeValue(buffer);
-// }
+function write(value) {
+    var buffer = new Uint8Array(1);
+    buffer[0] = value;
+    gattCharGetSetMode.writeValue(buffer);
+}
 
-// /*
-// function newButtonClickListener(number, value) {
-//     console.log("Button ");
-//     write(parseInt(number));
-// }
+function newButtonClickListener(number, value) {
+    console.log("Button ");
+    write(parseInt(number));
+}
 
-
-// function onDisconnected(event) {
-//   // Object event.target is Bluetooth Device getting disconnected.
-//     console.log('> Bluetooth Device disconnected');
-//     document.getElementById("btnConnect").disabled = false;
-//     document.getElementById("btnDisconnect").disabled = true;
-//     document.getElementById("bluetoothStatus").textContent = "bluetooth_disabled";
-//     removeButtons();
-// }
-
-// function btnDisconnect() {
-//   if (!glbBluetoothDevice) {
-//     return;
-//   }
-//   console.log('Disconnecting from Bluetooth Device...');
-//   if (glbBluetoothDevice.gatt.connected) {
-//     glbBluetoothDevice.gatt.disconnect();
-//   } 
-//   else {
-//     console.log('> Bluetooth Device is already disconnected');
-//     // document.getElementById("btnConnect").disabled = false;
-//     // document.getElementById("btnDisconnect").disabled = true;
-//     // document.getElementById("bluetoothStatus").textContent = "bluetooth_disabled";
-//     // removeButtons();
-//   }
-// }
-// */
 

@@ -45,7 +45,7 @@ class DlUi
                 name: "modeButton",
                 value: name,
                 class:"btn btn-info",
-                onclick: "newButtonClickListener(this.id, this.value)"
+                onclick: "modeChangeListener(this.id, this.value)"
             });
             $("body").append(r);
   }

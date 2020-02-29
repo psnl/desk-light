@@ -210,24 +210,18 @@ class DeskLight
         var brightness = value.getUint16(0, true);
         this.Brightness(true);
         this.BrightnessUpdate(brightness);
-      });
-      gattService.getCharacteristic("e0de3de1-0cb6-4f11-bb40-446445a2448b").then(gattCharacteristic=>{
-        console.log('dl:fetchGetSetMode');
-        gattCharGetSetMode = gattCharacteristic;
-      });
-      gattService.getCharacteristic("2a8ed03b-d99a-4e7b-bcf5-be33882577d8").then(gattCharacteristic=>{
-        console.log('dl:fetchQueryMode');
-        gattCharQueryMode = gattCharacteristic;
-        this.fetchMode(gattCharQueryMode, 0, glbModeOptions);
-      });
 
-      gattCharacteristic.startNotifications().then(gattCharacteristic=>{
-          console.log('> Notifications started');
-          gattCharacteristic.addEventListener("characteristicvaluechanged", event=>{
-            this.BrightnessUpdate(event.target.value.getUint16(0, true));
+        gattService.getCharacteristic("e0de3de1-0cb6-4f11-bb40-446445a2448b").then(gattCharacteristic=>{
+          console.log('dl:fetchGetSetMode');
+          gattCharGetSetMode = gattCharacteristic;
+
+          gattService.getCharacteristic("2a8ed03b-d99a-4e7b-bcf5-be33882577d8").then(gattCharacteristic=>{
+            console.log('dl:fetchQueryMode');
+            gattCharQueryMode = gattCharacteristic;
+            this.fetchMode(gattCharQueryMode, 0, glbModeOptions);
           });
+        });
       });
-
     }).catch(error => {
       console.log('dl:fetchCharBrightness error ' + error);
     });
@@ -248,12 +242,18 @@ class DeskLight
             {
                 //Done add buttons
               gattCharGetSetMode.startNotifications().then(gattCharGetSetMode=>{
+                console.log('> Notifications started');
+                gattCharGetSetMode.addEventListener("characteristicvaluechanged", event=>{
+                    var value = event.target.value.getUint8(0);
+                    this._ui.btnColorModeButton(value);
+                    //$("#notifiedValue").text("" + value);
+                });
+                brightnessChar.startNotifications().then(brightnessChar=>{
                   console.log('> Notifications started');
-                  gattCharGetSetMode.addEventListener("characteristicvaluechanged", event=>{
-                      var value = event.target.value.getUint8(0);
-                      this._ui.btnColorModeButton(value);
-                      //$("#notifiedValue").text("" + value);
+                  brightnessChar.addEventListener("characteristicvaluechanged", event=>{
+                    this.BrightnessUpdate(event.target.value.getUint16(0, true));
                   });
+                });
               });
    
             }

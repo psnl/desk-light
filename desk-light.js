@@ -166,7 +166,8 @@ class DeskLight
   }
 
   onBleConnected() {
-    console.log('dl:onConnected');    
+    console.log('dl:onConnected');
+    document.getElementById("bluetoothStatus").textContent = "bluetooth_connected";
     desklight._state = dlState.CONNECTED;
     desklight._ui.btnConnection(document.getElementById("btnConnection"), desklight.State2ButtonText(desklight._state))
 
@@ -179,6 +180,7 @@ class DeskLight
       return;
     }
     // Use global variable
+    document.getElementById("bluetoothStatus").textContent = "bluetooth_disabled";
     desklight._state = dlState.NOT_CONNECTED;
     desklight._ble.disconnect();
     desklight._ui.btnConnection(document.getElementById("btnConnection"), desklight.State2ButtonText(desklight._state))

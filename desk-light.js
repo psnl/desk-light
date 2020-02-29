@@ -1,5 +1,6 @@
 //import DlUi from './dl-ui';
 //const DlUi = require('./dl-ui');
+var brightnessChar = null;
 
 const dlState = {
     NOT_CONNECTED: "not_connected",
@@ -16,6 +17,8 @@ class DlBluetooth
     this._onConnect = null;
     this._onDisconnect = null;
     this._onError = null;
+    this._server = null;
+
   }
 
   connect(onConnect, onDisconnect, onError) {
@@ -42,6 +45,7 @@ class DlBluetooth
       }
       this._bleDevice.gatt.connect().then(server => {
         console.log('ble:connected');
+        this._server = server;
         if (this._onConnect != null)
         {
           this._onConnect();
@@ -74,10 +78,13 @@ class DlBluetooth
     this._onConnect = null;
     this._onDisconnect = null;
     this._onError = null;
+    this._server = null;
   }
 
-
-
+  get server()
+  {
+    return this._server;
+  }
 }
 
 // class DlUi
@@ -126,13 +133,60 @@ class DeskLight
     }
   }
 
+  btnZigbee() {
+    console.log('btnZigbee pressed');
+    var elem = event.srcElement;
+    var range = document.getElementById("brightnessControl")
+    if (elem.innerHTML == "Manual")
+    {
+      elem.innerHTML = "Zigbee"
+      range.disabled = true;
+      if (brightnessChar != null){
+        var buffer = new ArrayBuffer(2)
+        //var buffer = new Uint16Array(1);
+        var dv = new DataView(buffer, 0);
+        dv.setUint16(0, 256, true);
+        brightnessChar.writeValue(dv);
+      }
+    }
+    else
+    {
+      elem.innerText = "Manual"
+      range.disabled = false;
+
+      var buffer = new ArrayBuffer(2)
+      //var buffer = new Uint16Array(1);
+      var dv = new DataView(buffer, 0);
+      dv.setUint16(0, range.value, true);
+      brightnessChar.writeValue(dv);
+
+    }
+
+  }
+
+  rangeBrightness() {
+    var elem = event.srcElement;
+    console.log('rangeBrightness changed (' + elem.value + ')');
+    if (document.getElementById("btnZigbee").innerHTML == "Manual")
+    {
+    
+      if (brightnessChar != null){
+        var buffer = new ArrayBuffer(2)
+        //var buffer = new Uint16Array(1);
+        var dv = new DataView(buffer, 0);
+        dv.setUint16(0, elem.value, true);
+        brightnessChar.writeValue(dv);
+      }
+    }
+
+  }
+
   onBleConnected() {
     console.log('dl:onConnected');    
     desklight._state = dlState.CONNECTED;
     desklight._ui.btnConnection(document.getElementById("btnConnection"), desklight.State2ButtonText(desklight._state))
-    // temp
-    document.getElementById("btnZigbee").hidden = false;
 
+    desklight.fetchService();
   }
 
   onBleDisconnected() {
@@ -144,15 +198,84 @@ class DeskLight
     desklight._state = dlState.NOT_CONNECTED;
     desklight._ble.disconnect();
     desklight._ui.btnConnection(document.getElementById("btnConnection"), desklight.State2ButtonText(desklight._state))
-
-    // temp
-    document.getElementById("btnZigbee").hidden = true;
+    desklight.Brightness(false);
   }
 
   onBleError() {
     console.log('dl:onError');
   }
 
+  fetchService() {
+    console.log('dl:fetchService');
+    this._ble.server.getPrimaryService("4c68970c-7145-415e-b4ca-b47d132e62dd").then(gattService=>{
+      desklight.fetchCharBrightness(gattService);
+    }).catch(error => {
+      console.log('dl:fetchService error ' + error);
+    });
+  }
+
+  fetchCharBrightness(gattService) {
+    console.log('dl:fetchCharBrightness');
+    gattService.getCharacteristic("5a028edd-5f36-4aef-8b53-ed3ee2805b09").then(gattCharacteristic=>{
+      gattCharacteristic.readValue().then(value => {
+        brightnessChar = gattCharacteristic;
+        var brightness = value.getUint16(0, true);
+        this.Brightness(true);
+        this.BrightnessUpdate(brightness);
+        //console.log(brightnessRaw);
+      }).catch(error => {
+        console.log('dl:fetchCharBrightness value error ' + error);
+      });
+      gattCharacteristic.startNotifications().then(gattCharacteristic=>{
+          console.log('> Notifications started');
+          gattCharacteristic.addEventListener("characteristicvaluechanged", event=>{
+            this.BrightnessUpdate(event.target.value.getUint16(0, true));
+          });
+      });
+
+    }).catch(error => {
+      console.log('dl:fetchCharBrightness error ' + error);
+    });
+  }
+
+  //         gattService.getCharacteristic("e0de3de1-0cb6-4f11-bb40-446445a2448b").then(gattCharacteristic=>{
+//             console.log('> gattCharGetSetMode');
+//             gattCharGetSetMode = gattCharacteristic;
+//             gattService.getCharacteristic("2a8ed03b-d99a-4e7b-bcf5-be33882577d8").then(gattCharacteristic=>{
+//               console.log('> gattCharQueryMode');
+//               gattCharQueryMode = gattCharacteristic;
+//               var modeString = query_mode(gattCharQueryMode, 0, glbModeOptions);
+//             });
+
+  Brightness(enable)
+  {
+    var zigbee = document.getElementById("btnZigbee");
+    var range = document.getElementById("brightnessControl")
+    if (enable) {
+      zigbee.hidden = false;
+      range.hidden = false;
+    }
+    else{
+      zigbee.hidden = true;
+      range.hidden = true;
+    }
+  }
+
+
+  BrightnessUpdate(value)
+  {
+    var zigbee = document.getElementById("btnZigbee");
+    var range = document.getElementById("brightnessControl")
+    range.value = 0xFF & value;
+    if (value >= 256) {
+      range.disabled = true;
+      zigbee.innerHTML = "Zigbee";
+    }
+    else {
+      range.disabled = false;
+      zigbee.innerHTML = "Manual";
+    }
+  }
 
   State2ButtonText(state)
   {

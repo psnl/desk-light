@@ -22,10 +22,10 @@
 <div class="container-fluid">
   <div class="row" id="firstRow">
     <button class="btn btn-info" id ="btnConnection" onclick="desklight.btnConnection()">Connect</button>
-    <button class="btn btn-info" id ="btnZigbee" onclick="btnZigbee()" hidden="true">Zigbee</button>
+    <button class="btn btn-info" id ="btnZigbee" onclick="desklight.btnZigbee()" hidden="true">Zigbee</button>
   </div>
-  <div class="row" id="secondRow" hidden="true">
-      <input type="range" min="0" max="255" value="0" class="slider" id="brightnessControl">
+  <div class="row" id="secondRow">
+      <input type="range" min="0" max="255" value="0" hidden="true" class="slider" id="brightnessControl" ontouchend="desklight.rangeBrightness()" onmouseup="desklight.rangeBrightness()" >
   </div>
 <hr> 
 <div id="buttonLocation"></div>

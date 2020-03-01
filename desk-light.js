@@ -75,15 +75,16 @@ class DlBluetooth
     if (!this._bleDevice) {
       return;
     }
-
     if (this._bleDevice.gatt.connected) {
       this._bleDevice.gatt.disconnect();
-    } 
-    this._bleDevice = null;
-    this._onConnect = null;
-    this._onDisconnect = null;
-    this._onError = null;
-    this._server = null;
+    }  
+    //brightnessChar.stopNotifications();
+    //gattCharGetSetMode.stopNotifications();
+    // this._bleDevice = null;
+    // this._onConnect = null;
+    // this._onDisconnect = null;
+    // this._onError = null;
+    // this._server = null;
   }
 
   get server()

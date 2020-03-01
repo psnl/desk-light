@@ -4,6 +4,7 @@ var brightnessChar = null;
 var gattCharGetSetMode = null;
 var gattCharQueryMode = null;
 var glbModeOptions = [];
+var brightnessNotifyStarted = false;
 
 const dlState = {
     NOT_CONNECTED: "not_connected",
@@ -76,10 +77,11 @@ class DlBluetooth
     }
     if (brightnessChar) {
       brightnessChar.stopNotifications()
-      // .then(_ => {
-      //   brightnessChar.removeEventListener('characteristicvaluechanged',
-      //       handleNotifications);
-      // });
+      .then(_ => {
+        brightnessNotifyStarted = false;
+        // brightnessChar.removeEventListener('characteristicvaluechanged',
+        //     handleNotifications);
+      });
       brightnessChar = null;
     }
     if (gattCharGetSetMode) {
@@ -263,16 +265,19 @@ class DeskLight
                 //Done add buttons
               gattCharGetSetMode.startNotifications().then(gattCharGetSetMode=>{
                 console.log('> Notifications started');
-                gattCharGetSetMode.addEventListener("characteristicvaluechanged", event=>{
-                    var value = event.target.value.getUint8(0);
+                gattCharGetSetMode.addEventListener("characteristicvaluechanged", event1=>{
+                    var value = event1.target.value.getUint8(0);
                     this._ui.btnColorModeButton(value);
                     //$("#notifiedValue").text("" + value);
-                });
-              });
-              brightnessChar.startNotifications().then(brightnessChar=>{
-                console.log('> Notifications started');
-                brightnessChar.addEventListener("characteristicvaluechanged", event=>{
-                  this.BrightnessUpdate(event.target.value.getUint16(0, true));
+                    if (brightnessNotifyStarted == false) {
+                      brightnessNotifyStarted = true;
+                      brightnessChar.startNotifications().then(brightnessChar=>{
+                        console.log('> Notifications started');
+                        brightnessChar.addEventListener("characteristicvaluechanged", event2=>{
+                          this.BrightnessUpdate(event2.target.value.getUint16(0, true));
+                        });
+                      });
+                    }
                 });
               });
             }

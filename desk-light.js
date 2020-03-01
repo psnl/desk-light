@@ -74,6 +74,26 @@ class DlBluetooth
     if (!this._bleDevice) {
       return;
     }
+    if (brightnessChar) {
+      brightnessChar.stopNotifications()
+      // .then(_ => {
+      //   brightnessChar.removeEventListener('characteristicvaluechanged',
+      //       handleNotifications);
+      // });
+      brightnessChar = null;
+    }
+    if (gattCharGetSetMode) {
+      gattCharGetSetMode.stopNotifications()
+      // .then(_ => {
+      //   gattCharGetSetMode.removeEventListener('characteristicvaluechanged',
+      //       handleNotifications);
+      // });
+      gattCharGetSetMode = null;
+    }
+    if (gattCharQueryMode) {
+      gattCharQueryMode = null;
+    }
+
     if (this._bleDevice.gatt.connected) {
       this._bleDevice.gatt.disconnect();
     } 
@@ -248,14 +268,13 @@ class DeskLight
                     this._ui.btnColorModeButton(value);
                     //$("#notifiedValue").text("" + value);
                 });
-                brightnessChar.startNotifications().then(brightnessChar=>{
-                  console.log('> Notifications started');
-                  brightnessChar.addEventListener("characteristicvaluechanged", event=>{
-                    this.BrightnessUpdate(event.target.value.getUint16(0, true));
-                  });
+              });
+              brightnessChar.startNotifications().then(brightnessChar=>{
+                console.log('> Notifications started');
+                brightnessChar.addEventListener("characteristicvaluechanged", event=>{
+                  this.BrightnessUpdate(event.target.value.getUint16(0, true));
                 });
               });
-   
             }
         });
     });

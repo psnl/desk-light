@@ -264,7 +264,7 @@ class DeskLight
             {
                 //Done add buttons
               gattCharGetSetMode.startNotifications().then(gattCharGetSetMode=>{
-                console.log('> Notifications started');
+                console.log('Mode notifications started');
                 gattCharGetSetMode.addEventListener("characteristicvaluechanged", event1=>{
                     var value = event1.target.value.getUint8(0);
                     this._ui.btnColorModeButton(value);
@@ -272,7 +272,7 @@ class DeskLight
                     if (brightnessNotifyStarted == false) {
                       brightnessNotifyStarted = true;
                       brightnessChar.startNotifications().then(brightnessChar=>{
-                        console.log('> Notifications started');
+                        console.log('Brightness notifications started');
                         brightnessChar.addEventListener("characteristicvaluechanged", event2=>{
                           this.BrightnessUpdate(event2.target.value.getUint16(0, true));
                         });

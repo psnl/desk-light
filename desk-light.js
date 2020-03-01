@@ -75,26 +75,6 @@ class DlBluetooth
     if (!this._bleDevice) {
       return;
     }
-    if (brightnessChar) {
-      brightnessChar.stopNotifications()
-      .then(_ => {
-        brightnessNotifyStarted = false;
-        // brightnessChar.removeEventListener('characteristicvaluechanged',
-        //     handleNotifications);
-      });
-      brightnessChar = null;
-    }
-    if (gattCharGetSetMode) {
-      gattCharGetSetMode.stopNotifications()
-      // .then(_ => {
-      //   gattCharGetSetMode.removeEventListener('characteristicvaluechanged',
-      //       handleNotifications);
-      // });
-      gattCharGetSetMode = null;
-    }
-    if (gattCharQueryMode) {
-      gattCharQueryMode = null;
-    }
 
     if (this._bleDevice.gatt.connected) {
       this._bleDevice.gatt.disconnect();
@@ -214,6 +194,14 @@ class DeskLight
     console.log('dl:onError');
   }
 
+  onModeNotify() {
+    console.log('dl:onModeNotify');
+  }
+
+  onBrightnessNotify() {
+    console.log('dl:onBrightnessNotify');
+  }
+
   fetchService() {
     console.log('dl:fetchService');
     this._ble.server.getPrimaryService("4c68970c-7145-415e-b4ca-b47d132e62dd").then(gattService=>{
@@ -265,6 +253,7 @@ class DeskLight
                 //Done add buttons
               gattCharGetSetMode.startNotifications().then(gattCharGetSetMode=>{
                 console.log('Mode notifications started');
+                brightnessNotifyStarted = false;
                 gattCharGetSetMode.addEventListener("characteristicvaluechanged", event1=>{
                     var value = event1.target.value.getUint8(0);
                     this._ui.btnColorModeButton(value);
